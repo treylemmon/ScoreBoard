@@ -1,0 +1,1032 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1B2A4A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scoreboard">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Talents Scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: phone-first staff console. Team scoreboard on top, tabbed action panels below. */
+:root{
+  --bg:#EEF1F6; --surface:#FFFFFF; --ink:#131B2E; --muted:#5A6378; --line:#D6DCE6;
+  --navy:#1B2A4A; --on-navy:#FFFFFF; --gold:#A87700; --gold-soft:#FFF3D1;
+  --good:#1D7A4E; --good-soft:#DDF3E7; --bad:#B3261E; --bad-soft:#FBE3E1;
+  --red:#C93A3A; --yellow:#9A7A00; --orange:#C9600E; --blue:#2563C9;
+  --display:"Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --body:"Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1422; --surface:#18203A; --ink:#E8ECF4; --muted:#9AA4BA; --line:#2B3555;
+  --navy:#3B5694; --on-navy:#FFFFFF; --gold:#F2B92E; --gold-soft:#3A2F12;
+  --good:#5BD49A; --good-soft:#163A2A; --bad:#FF8A80; --bad-soft:#3E1C1C;
+  --red:#FF7070; --yellow:#F2CC3D; --orange:#FF9A4A; --blue:#6FA3FF; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1422; --surface:#18203A; --ink:#E8ECF4; --muted:#9AA4BA; --line:#2B3555;
+  --navy:#3B5694; --on-navy:#FFFFFF; --gold:#F2B92E; --gold-soft:#3A2F12;
+  --good:#5BD49A; --good-soft:#163A2A; --bad:#FF8A80; --bad-soft:#3E1C1C;
+  --red:#FF7070; --yellow:#F2CC3D; --orange:#FF9A4A; --blue:#6FA3FF; color-scheme:dark}
+*{box-sizing:border-box}
+textarea{font:500 .95rem/1.5 var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px;width:100%;min-width:0;min-height:180px;resize:vertical}
+.roster{display:grid;gap:8px;border:1px solid var(--line);border-top:5px solid var(--tc);border-radius:12px;padding:12px;min-width:0}
+.roster h3{font-size:1rem;color:var(--tc);display:flex;justify-content:space-between;gap:8px}
+.roster h3 span{color:var(--muted);font:500 .8rem var(--body)}
+.rosters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.rosters{grid-template-columns:1fr}}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:860px;margin:0 auto;padding-block:16px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+h1{font-size:1.5rem}
+h2{font-size:1.15rem}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.sub{color:var(--muted);font-size:.85rem}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;color:var(--muted);font:600 .85rem var(--body);padding:7px 12px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy);color:var(--on-navy)}
+.status{font-size:.82rem;padding:8px 12px;border-radius:8px;background:var(--gold-soft);color:var(--ink)}
+.teams{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.teams{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.team{background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--tc);border-radius:12px;padding:12px;display:grid;gap:4px;min-width:0}
+.team .nm{font:700 .95rem var(--display);color:var(--tc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.team .bal{font:700 2.2rem/1 var(--display);font-variant-numeric:tabular-nums}
+.team .bal small{font-size:.9rem;color:var(--muted);font-weight:500}
+.team .meta{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.rank{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.chip{font-size:.7rem;font-weight:600;padding:2px 7px;border-radius:99px;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.chip.ok{background:var(--good-soft);color:var(--good);border-color:transparent}
+.chip.warn{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.chip.gold{background:var(--gold-soft);color:var(--gold);border-color:transparent}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.tabs button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 .9rem var(--body);padding:10px 14px;border-radius:10px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--navy);color:var(--on-navy);border-color:var(--navy)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:14px}
+label.f{display:grid;gap:5px;font-size:.8rem;font-weight:600;color:var(--muted)}
+select,input[type=text],input[type=number]{font:500 1rem var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px;width:100%;min-width:0}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.row4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:640px){.pick{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pick button{border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 8px;font:600 .9rem var(--body);cursor:pointer;text-align:left;min-width:0}
+.pick button[aria-pressed="true"]{border-color:var(--tc,var(--navy));background:var(--surface);box-shadow:inset 0 0 0 1px var(--tc,var(--navy))}
+.pick button .c{display:block;font-size:.78rem;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.pick button:disabled{opacity:.45;cursor:not-allowed}
+.items{grid-template-columns:repeat(2,minmax(0,1fr))}
+.stu{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.stu button{border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:9px 8px;font:600 .88rem var(--body);cursor:pointer;text-align:left;min-width:0;overflow-wrap:anywhere}
+.stu button[aria-pressed="true"]{border-color:var(--tc);background:var(--surface);box-shadow:inset 0 0 0 1px var(--tc)}
+.stu button .g{display:block;font-size:.72rem;font-weight:500;color:var(--muted)}
+.glist{display:flex;flex-wrap:wrap;gap:6px}
+.glist button{border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:8px 14px;font:700 .9rem var(--body);cursor:pointer}
+.glist button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--on-navy)}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:700 1.2rem var(--body);cursor:pointer}
+.stepper output{min-width:28px;text-align:center;font:700 1.2rem var(--display);font-variant-numeric:tabular-nums}
+.tk{display:grid;gap:4px;font-size:.82rem;font-weight:600}
+.check{display:flex;align-items:center;gap:8px;font-weight:600;font-size:.9rem;padding:8px 10px;border-radius:9px;background:var(--gold-soft)}
+.check input{width:20px;height:20px}
+.preview{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;font-size:.9rem;display:grid;gap:4px;font-variant-numeric:tabular-nums}
+.preview .empty{color:var(--muted)}
+.go{border:0;background:var(--navy);color:var(--on-navy);font:700 1rem var(--body);padding:14px;border-radius:11px;cursor:pointer}
+.go:disabled{opacity:.45;cursor:not-allowed}
+.ghost{border:1px solid var(--line);background:transparent;color:var(--ink);font:600 .85rem var(--body);padding:8px 12px;border-radius:9px;cursor:pointer}
+.danger{border-color:var(--bad);color:var(--bad)}
+.msg{font-size:.85rem;font-weight:600}
+.msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+.log{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.log li{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;border-bottom:1px solid var(--line);padding-bottom:8px}
+.log .when{font-size:.75rem;color:var(--muted)}
+.log .txt{font-size:.9rem;min-width:0;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.scroll{overflow-x:auto}
+.note{font-size:.8rem;color:var(--muted)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Talents Scoreboard</h1>
+      <div class="sub">Staff only. Fall Retreat points, prizes and store.</div>
+    </div>
+    <div class="seg" id="daySeg" role="group" aria-label="Day">
+      <button data-day="Fri">Fri</button><button data-day="Sat">Sat</button><button data-day="Sun">Sun</button>
+    </div>
+  </div>
+  <div class="status" id="status" hidden></div>
+
+  <div class="top">
+    <h2>Teams</h2>
+    <div class="seg" id="sortSeg" role="group" aria-label="Sort">
+      <button data-sort="team">Team order</button><button data-sort="pts">Most points</button><button data-sort="grow">Growth</button>
+    </div>
+  </div>
+  <div class="teams" id="teams"></div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="game" aria-selected="true">Game result</button>
+    <button role="tab" data-tab="store">Store</button>
+    <button role="tab" data-tab="ctf">Capture the flag</button>
+    <button role="tab" data-tab="groups">Trivia &amp; talent</button>
+    <button role="tab" data-tab="inv">Inventory</button>
+    <button role="tab" data-tab="lights">Lights out</button>
+    <button role="tab" data-tab="rosters">Rosters</button>
+    <button role="tab" data-tab="log">Log</button>
+    <button role="tab" data-tab="setup">Setup</button>
+  </div>
+
+  <!-- GAME -->
+  <section class="panel" data-panel="game">
+    <label class="f">Which game?
+      <select id="game">
+        <option value="upfront">Up-front game (session)</option>
+        <option value="ctf">Capture the flag</option>
+        <option value="afternoon">Afternoon game</option>
+        <option value="trivia">Trivia</option>
+        <option value="talent">Talent show</option>
+      </select>
+    </label>
+    <div id="placeBox" class="row4">
+      <label class="f">1st place<select id="p0"></select></label>
+      <label class="f">2nd place<select id="p1"></select></label>
+      <label class="f">3rd place<select id="p2"></select></label>
+      <label class="f">4th place<select id="p3"></select></label>
+    </div>
+    <div id="tokenBox" hidden>
+      <div class="note" id="tokenNote"></div>
+      <div class="row4" id="tokenRows" style="margin-top:8px"></div>
+    </div>
+    <div id="dnBox" style="display:grid;gap:6px"></div>
+    <div class="preview" id="gamePreview"></div>
+    <button class="go" id="gameGo">Award points</button>
+    <div class="msg" id="gameMsg" aria-live="polite"></div>
+  </section>
+
+  <!-- STORE -->
+  <section class="panel" data-panel="store" hidden>
+    <div><div class="f" style="font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:5px">Who's buying?</div>
+      <div class="pick" id="buyTeam"></div></div>
+    <div><div class="f" style="font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:5px">What are they buying?</div>
+      <div class="pick items" id="buyItem"></div></div>
+    <div class="preview" id="buyPreview"></div>
+    <button class="go" id="buyGo">Record purchase</button>
+    <div class="msg" id="buyMsg" aria-live="polite"></div>
+  </section>
+
+  <!-- TRIVIA & TALENT GROUPS -->
+  <section class="panel" data-panel="groups" hidden>
+    <div class="top">
+      <h2>Trivia &amp; talent results</h2>
+      <div class="seg" role="group" aria-label="Event">
+        <button data-gev="trivia">Trivia</button><button data-gev="talent">Talent show</button>
+      </div>
+    </div>
+    <p class="note" style="margin:0" id="gAwardHint"></p>
+    <div class="row4" id="gPlaces"></div>
+    <div class="preview" id="gPreview"></div>
+    <button class="go" id="gAward">Award tokens</button>
+    <div class="msg" id="gMsg" aria-live="polite"></div>
+  </section>
+
+  <!-- CAPTURE THE FLAG -->
+  <section class="panel" data-panel="ctf" hidden>
+    <div class="top"><h2 id="ctfTitle">Capture the flag</h2><span class="note">1 point per flag. +1 bonus for each full set (a flag from every other team).</span></div>
+    <div class="msg" id="ctfMsg" aria-live="polite"></div>
+    <div class="rosters" id="ctfTeams"></div>
+    <h2>Standings</h2>
+    <div class="scroll"><table><thead><tr><th>Place</th><th>Team</th><th>Flags</th><th>Bonus</th><th>Score</th></tr></thead><tbody id="ctfStand"></tbody></table></div>
+    <button class="go" id="ctfSend">Send standings to Game result</button>
+    <h2>Captures this round</h2>
+    <ul class="log" id="ctfLog"></ul>
+    <button class="ghost" id="ctfReset">Start a new round</button>
+  </section>
+
+  <!-- INVENTORY -->
+  <section class="panel" data-panel="inv" hidden>
+    <h2>Inventory</h2>
+    <p class="note" style="margin:0">What each team owns. Tap Use when they play it. Sabotage asks who it hits, and a Shield on that team blocks it automatically.</p>
+    <div class="msg" id="invMsg" aria-live="polite"></div>
+    <div class="rosters" id="inv"></div>
+  </section>
+
+  <!-- LIGHTS OUT -->
+  <section class="panel" data-panel="lights" hidden>
+    <h2 id="lightsTitle">Lights out</h2>
+    <p class="note" style="margin:0">Any team that bought nothing today loses 20% of its points. Run this once per night after the store closes.</p>
+    <div class="scroll"><table><thead><tr><th>Team</th><th>Bought today?</th><th>Points</th><th>Loses</th></tr></thead><tbody id="lightsRows"></tbody></table></div>
+    <button class="go" id="lightsGo">Apply the 20% rule</button>
+    <div class="msg" id="lightsMsg" aria-live="polite"></div>
+  </section>
+
+  <!-- ROSTERS -->
+  <section class="panel" data-panel="rosters" hidden>
+    <h2>Rosters</h2>
+    <p class="note" style="margin:0">Pick each team's color by its starting points, then list who's on it, one name per line.</p>
+    <div class="rosters" id="rosterRows"></div>
+    <button class="go" id="rosterGo">Save rosters and colors</button>
+    <div class="msg" id="rosterMsg" aria-live="polite"></div>
+    <div class="top" style="border-top:1px solid var(--line);padding-top:14px">
+      <h2>Trivia &amp; talent groups</h2>
+      <div class="seg" role="group" aria-label="Event">
+        <button data-gev="trivia">Trivia</button><button data-gev="talent">Talent show</button>
+      </div>
+    </div>
+    <p class="note" style="margin:0" id="gHint"></p>
+    <div class="glist" id="gList"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="text" id="gName" placeholder="New group name, e.g. Group 6" style="flex:1;min-width:160px">
+      <button class="ghost" id="gAdd">Add group</button>
+      <button class="ghost" id="gQuick" hidden>Add Boys and Girls</button>
+      <button class="ghost" id="gDel" hidden>Delete this group</button>
+    </div>
+    <div id="gStudents" style="display:grid;gap:14px"></div>
+  </section>
+
+  <!-- LOG -->
+  <section class="panel" data-panel="log" hidden>
+    <h2>Everything that's happened</h2>
+    <p class="note" style="margin:0">Newest first. Undo removes an entry and every number recalculates.</p>
+    <ul class="log" id="log"></ul>
+  </section>
+
+  <!-- SETUP -->
+  <section class="panel" data-panel="setup" hidden>
+    <h2>Manual adjustment</h2>
+    <div class="row">
+      <label class="f">Team<select id="adjTeam"></select></label>
+      <label class="f">Points (+ or −)<input type="number" id="adjPts" inputmode="numeric" step="1"></label>
+      <label class="f">Reason<input type="text" id="adjNote" placeholder="e.g. Swap fix"></label>
+    </div>
+    <button class="ghost" id="adjGo">Add adjustment</button>
+    <div class="msg" id="adjMsg" aria-live="polite"></div>
+    <h2>Backup</h2>
+    <p class="note" style="margin:0">Save everything (scores, store, inventory, capture the flag, rosters, groups) to a file. Load a backup file to pick up where it left off on another device.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="ghost" id="expGo">Save a backup file</button>
+      <button class="ghost" id="impGo">Load a backup file</button>
+      <input type="file" id="impFile" accept="application/json,.json" hidden>
+    </div>
+    <div class="msg" id="bakMsg" aria-live="polite"></div>
+    <h2>Price and prize sheet</h2>
+    <div class="scroll"><table id="sheet"></table></div>
+    <p class="note" style="margin:0">1 unit = 10% of a team's starting points. Tax makes the target pay double on their next purchase. Talent show small tokens are worth 1 unit.</p>
+  </section>
+</div>
+
+<script>
+(() => {
+const START = [50, 30, 20, 10];
+const UNIT = START.map(s => s / 10);
+const COLOR_LIST = ["red", "yellow", "orange", "blue"];
+const TAX_EXTRA = 3;
+const PLACES = ["1st", "2nd", "3rd", "4th"];
+const GAMES = {
+  upfront:   { label: "Up-front game",    mode: "place",  units: [8] },
+  ctf:       { label: "Capture the flag", mode: "place",  units: [12, 8, 4, 2] },
+  afternoon: { label: "Afternoon game",   mode: "place",  units: [12, 8, 4, 2] },
+  trivia:    { label: "Trivia",           mode: "tokens", units: 2 },
+  talent:    { label: "Talent show",      mode: "tokens", units: 2, small: 1 },
+};
+const ITEMS = {
+  lifeline: { label: "Lifeline",          u: 5, type: "up" },
+  dn:       { label: "Double or Nothing", u: 6, type: "up" },
+  extra:    { label: "Extra Player",      u: 8, type: "up" },
+  jail:     { label: "Jailbreak",         u: 8, type: "up", retired: true },
+  shield:   { label: "Shield",            u: 5, type: "def" },
+  tax:      { label: "Tax",               u: 5, type: "sab" },
+  switch:   { label: "Switch",            u: 6, type: "sab" },
+  swap:     { label: "Swap",              u: 8, type: "sab" },
+};
+const DAYS = { Fri: "Friday", Sat: "Saturday", Sun: "Sunday" };
+
+let events = [];
+let colors = COLOR_LIST.slice();
+let rosters = ["", "", "", ""];
+let caps = [], ctfRound = 1, resetArmed = false;
+let groupsData = { trivia: [], talent: [] }, gEvent = "trivia", gActive = { trivia: null, talent: null }, gDelArmed = false;
+const gPending = {}, gTimers = {};
+let store = null;          // {add, del, setCfg}
+let day = guessDay();
+let sortBy = "team";
+let buyTeam = null, buyItem = null;
+let tokens = [0,0,0,0], small = [0,0,0,0];
+let confirmId = null;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const tc = i => `var(--${colors[i] || COLOR_LIST[i]})`;
+const nm = i => { const c = colors[i] || COLOR_LIST[i]; return c[0].toUpperCase() + c.slice(1); };
+const rosterList = i => (rosters[i] || "").split("\n").map(s => s.trim()).filter(s => s && !/^adult/i.test(s));
+
+function guessDay() {
+  try { const s = localStorage.getItem("tsb-day"); if (s && DAYS[s]) return s; } catch (e) {}
+  const d = new Date();
+  if (d.getMonth() === 10) { if (d.getDate() === 13) return "Fri"; if (d.getDate() === 15) return "Sun"; }
+  return "Sat";
+}
+
+/* ---------- derived state ---------- */
+function derive() {
+  const t = START.map(s => ({ bal: s, dn: 0, tax: 0, shield: 0, ready: 0, bought: {} }));
+  const burned = {}, items = [], byId = {};
+  const firstUnused = (team, item) => items.find(x => x.team === team && x.item === item && !x.used);
+  const applySab = (it, ev, target, blocked, shieldId) => {
+    it.used = { ts: ev.ts, target, blocked };
+    if (target == null) return;
+    if (blocked) {
+      const sh = (shieldId && byId[shieldId] && !byId[shieldId].used) ? byId[shieldId] : firstUnused(target, "shield");
+      if (sh) sh.used = { ts: ev.ts, blockedFrom: it.team, blockedItem: it.item };
+    } else if (it.item === "tax") t[target].tax++;
+  };
+  const sorted = events.slice().sort((a, b) => a.ts - b.ts);
+  for (const ev of sorted) {
+    for (const l of ev.lines || []) {
+      t[l.team].bal += l.pts;
+      if (l.dn) {
+        const it = (l.dnBuy && byId[l.dnBuy] && !byId[l.dnBuy].used) ? byId[l.dnBuy] : firstUnused(l.team, "dn");
+        if (it) it.used = { ts: ev.ts, note: l.pts > 0 ? `Won ${ev.text.split(":")[0]}, prize doubled` : `Lost the bet on ${ev.text.split(":")[0]}` };
+      }
+    }
+    if (ev.kind === "buy") {
+      t[ev.team].bought[ev.day] = true;
+      if (ev.taxed) t[ev.team].tax--;
+      const it = { id: ev.id, team: ev.team, item: ev.item, ts: ev.ts, day: ev.day, used: null };
+      items.push(it); byId[ev.id] = it;
+      if (ITEMS[ev.item] && ITEMS[ev.item].type === "sab" && ev.target != null) applySab(it, ev, ev.target, ev.blocked);
+    }
+    if (ev.kind === "use") {
+      const it = byId[ev.buyId];
+      if (!it || it.used) continue;
+      if (ITEMS[it.item].type === "sab") applySab(it, ev, ev.target, ev.blocked, ev.shieldId);
+      else it.used = { ts: ev.ts };
+    }
+    if (ev.kind === "burn") burned[ev.day] = true;
+  }
+  items.forEach(x => { if (!x.used) { t[x.team].ready++; if (x.item === "dn") t[x.team].dn++; if (x.item === "shield") t[x.team].shield++; } });
+  t.forEach(x => { x.tax = Math.max(0, x.tax); });
+  return { t, burned, items, byId };
+}
+
+/* ---------- render ---------- */
+function render() {
+  const { t, burned, items } = derive();
+  // day selector
+  document.querySelectorAll("#daySeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.day === day));
+  document.querySelectorAll("#sortSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.sort === sortBy));
+
+  // teams
+  const order = [0,1,2,3];
+  if (sortBy === "pts") order.sort((a, b) => t[b].bal - t[a].bal);
+  if (sortBy === "grow") order.sort((a, b) => t[b].bal / START[b] - t[a].bal / START[a]);
+  $("teams").innerHTML = order.map((i, r) => {
+    const x = t[i], g = (x.bal / START[i]).toFixed(1);
+    const chips = [];
+    chips.push(x.bought[day] ? `<span class="chip ok">Bought ${day}</span>` : `<span class="chip warn">No buy ${day}</span>`);
+    if (x.ready) chips.push(`<span class="chip gold">${x.ready} item${x.ready > 1 ? "s" : ""} ready</span>`);
+    if (x.shield) chips.push(`<span class="chip">Shield up</span>`);
+    if (x.tax) chips.push(`<span class="chip warn">${x.tax > 1 ? x.tax + " taxes: next " + x.tax + " buys double" : "Taxed: next buy double"}</span>`);
+    return `<article class="team" style="--tc:${tc(i)}">
+      ${sortBy !== "team" ? `<div class="rank">#${r + 1}</div>` : ""}
+      <div class="nm">${esc(nm(i))}</div>
+      <div class="bal">${x.bal} <small>pts</small></div>
+      <div class="meta">Started ${START[i]} · ${g}x growth · 1 unit = ${UNIT[i]}${rosterList(i).length ? " · " + rosterList(i).length + " students" : ""}</div>
+      <div class="chips">${chips.join("")}</div>
+    </article>`;
+  }).join("");
+
+  renderGame(t); renderStore(t); renderCtf(t, items); renderGroups(); renderInv(items); renderLights(t, burned); renderLog(); renderRosters(); renderSetup();
+}
+
+function teamOptions(sel, withBlank, exclude) {
+  const cur = sel.value;
+  sel.innerHTML = (withBlank ? `<option value="">None</option>` : "") +
+    [0,1,2,3].filter(i => i !== exclude).map(i => `<option value="${i}">${esc(nm(i))}</option>`).join("");
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+/* ---------- game ---------- */
+function gameLines(t) {
+  const g = GAMES[$("game").value], lines = [], parts = [];
+  if (g.mode === "place") {
+    const picks = g.units.map((_, k) => $("p" + k).value).map(v => v === "" ? null : +v);
+    const seen = picks.filter(v => v != null);
+    if (new Set(seen).size !== seen.length) return { err: "A team can only place once." };
+    const dn = [...document.querySelectorAll("#dnBox input:checked")].map(c => +c.value);
+    const dnItems = dn.length ? derive().items : [];
+    const dnBuy = team => { const it = dnItems.find(x => x.team === team && x.item === "dn" && !x.used); return it ? it.id : undefined; };
+    picks.forEach((team, k) => {
+      if (team == null) return;
+      let pts = g.units[k] * UNIT[team], tag = "";
+      const usesDn = dn.includes(team);
+      if (usesDn) { if (k === 0) { pts *= 2; tag = ", doubled"; } else { pts = 0; tag = ", lost the bet"; } }
+      lines.push(usesDn ? { team, pts, dn: true, dnBuy: dnBuy(team) } : { team, pts });
+      parts.push(`${PLACES[k]} ${nm(team)} (+${pts}${tag})`);
+    });
+    dn.filter(team => !picks.includes(team)).forEach(team => {
+      lines.push({ team, pts: 0, dn: true, dnBuy: dnBuy(team) });
+      parts.push(`${nm(team)} lost a Double or Nothing bet (+0)`);
+    });
+  } else {
+    [0,1,2,3].forEach(team => {
+      const pts = tokens[team] * g.units * UNIT[team] + (g.small ? small[team] * g.small * UNIT[team] : 0);
+      if (!tokens[team] && !small[team]) return;
+      lines.push({ team, pts });
+      const bits = [];
+      if (tokens[team]) bits.push(`${tokens[team]} token${tokens[team] > 1 ? "s" : ""}`);
+      if (small[team]) bits.push(`${small[team]} small`);
+      parts.push(`${nm(team)} ${bits.join(" + ")} (+${pts})`);
+    });
+  }
+  return { lines, text: `${g.label}: ${parts.join(", ")}` };
+}
+
+function renderGame(t) {
+  const g = GAMES[$("game").value];
+  $("placeBox").hidden = g.mode !== "place";
+  $("tokenBox").hidden = g.mode !== "tokens";
+  [0,1,2,3].forEach(k => {
+    teamOptions($("p" + k), true);
+    const lab = $("p" + k).parentElement;
+    lab.hidden = g.mode !== "place" || k >= g.units.length;
+    lab.firstChild.textContent = g.units.length === 1 ? "Winner" : PLACES[k] + " place";
+  });
+  if (g.mode === "tokens") {
+    $("tokenNote").textContent = g.small
+      ? "Count the tokens each team brought back. Winning-side tokens are 2 units, small tokens 1 unit."
+      : "Count the tokens each team brought back. Each token is 2 units.";
+    $("tokenRows").innerHTML = [0,1,2,3].map(i => `
+      <div class="tk" style="color:${tc(i)}">${esc(nm(i))}
+        <div class="stepper"><button data-tok="${i}" data-d="-1" aria-label="Fewer tokens">−</button><output>${tokens[i]}</output><button data-tok="${i}" data-d="1" aria-label="More tokens">+</button></div>
+        ${g.small ? `<span class="note">Small tokens</span><div class="stepper"><button data-sm="${i}" data-d="-1" aria-label="Fewer small tokens">−</button><output>${small[i]}</output><button data-sm="${i}" data-d="1" aria-label="More small tokens">+</button></div>` : ""}
+      </div>`).join("");
+  }
+  // Double or Nothing toggles
+  const prevChecked = new Set([...document.querySelectorAll("#dnBox input:checked")].map(c => +c.value));
+  const ready = [0,1,2,3].filter(i => t[i].dn > 0);
+  $("dnBox").innerHTML = g.mode === "place" && ready.length
+    ? ready.map(i => `<label class="check"><input type="checkbox" value="${i}" ${prevChecked.has(i) ? "checked" : ""}> ${esc(nm(i))} is using Double or Nothing on this game</label>`).join("")
+    : "";
+  updateGamePreview();
+}
+function updateGamePreview() {
+  const r = gameLines();
+  const box = $("gamePreview");
+  if (r.err) { box.innerHTML = `<span class="msg err">${esc(r.err)}</span>`; $("gameGo").disabled = true; return; }
+  $("gameGo").disabled = !r.lines.length || !store;
+  box.innerHTML = r.lines.length
+    ? r.lines.map(l => `<div><b style="color:${tc(l.team)}">${esc(nm(l.team))}</b> +${l.pts} pts${l.dn ? " (Double or Nothing)" : ""}</div>`).join("")
+    : `<span class="empty">Pick who won to see the points.</span>`;
+}
+
+/* ---------- store ---------- */
+function purchase(t) {
+  if (buyTeam == null || !buyItem) return null;
+  const it = ITEMS[buyItem], u = UNIT[buyTeam];
+  const taxed = t[buyTeam].tax > 0;
+  if (it.retired) return { err: `${it.label} is no longer for sale.` };
+  const cost = it.u * u * (taxed ? 2 : 1);
+  if (t[buyTeam].bal < cost) return { err: `${nm(buyTeam)} only has ${t[buyTeam].bal} pts. This costs ${cost}.` };
+  return { it, cost, taxed };
+}
+function renderStore(t) {
+  $("buyTeam").innerHTML = [0,1,2,3].map(i => `<button data-bt="${i}" style="--tc:${tc(i)}" aria-pressed="${buyTeam === i}"><span style="color:${tc(i)}">${esc(nm(i))}</span><span class="c">${t[i].bal} pts</span></button>`).join("");
+  $("buyItem").innerHTML = Object.entries(ITEMS).map(([k, it]) => {
+    const pts = buyTeam == null ? `${it.u} units` : `${it.u * UNIT[buyTeam]} pts`;
+    const kind = it.type === "sab" ? "Sabotage" : it.type === "def" ? "Defense" : "Upgrade";
+    if (it.retired) return `<button disabled><s>${it.label}</s><span class="c">Done for the weekend</span></button>`;
+    return `<button data-bi="${k}" aria-pressed="${buyItem === k}">${it.label}<span class="c">${kind} · ${pts}</span></button>`;
+  }).join("");
+  updateBuyPreview(t);
+}
+function updateBuyPreview(t) {
+  t = t || derive().t;
+  const p = purchase(t), box = $("buyPreview");
+  if (!p) { box.innerHTML = `<span class="empty">Pick a team and an item.</span>`; $("buyGo").disabled = true; return; }
+  if (p.err) { box.innerHTML = `<span class="msg err">${esc(p.err)}</span>`; $("buyGo").disabled = true; return; }
+  const lines = [`<div><b style="color:${tc(buyTeam)}">${esc(nm(buyTeam))}</b> pays ${p.cost} pts for ${p.it.label}. New balance ${t[buyTeam].bal - p.cost}.</div>`];
+  if (p.taxed) { const left = t[buyTeam].tax - 1; lines.push(`<div class="note">Taxed: paying double (normally ${p.cost / 2} pts). ${left ? `${left} more tax${left > 1 ? "es" : ""} waiting after this.` : "This clears their last tax."}</div>`); }
+  lines.push(`<div class="note">${p.it.type === "sab" ? "It goes in their inventory. Pick who it hits when they use it." : p.it.type === "def" ? "It goes in their inventory and blocks the next sabotage aimed at them." : "It goes in their inventory until they use it."}</div>`);
+  box.innerHTML = lines.join("");
+  $("buyGo").disabled = !store;
+}
+
+/* ---------- trivia & talent groups ---------- */
+const stuKey = (team, name) => `${team}|${name}`;
+function groupOf(key) { return groupsData[gEvent].find(g => g.members.includes(key)); }
+function saveGroupsSoon(ev) {
+  gPending[ev] = true;
+  clearTimeout(gTimers[ev]);
+  gTimers[ev] = setTimeout(async () => {
+    try { await store.setGroups(ev, groupsData[ev]); } catch (e) { flash("gMsg", "Couldn't save groups. Check your connection.", false); }
+    gPending[ev] = false;
+  }, 700);
+}
+// Each "tier" is a place (or the talent show's winner / everyone else) with a per-person unit value.
+function groupTiers() {
+  const g = GAMES[gEvent], groups = groupsData[gEvent];
+  if (g.places) {
+    return g.places.map((u, k) => {
+      const sel = $("gp" + k);
+      const grp = sel ? groups.find(x => x.id === sel.value) : null;
+      return grp ? { label: PLACES[k], group: grp, units: u } : null;
+    }).filter(Boolean);
+  }
+  const sel = $("gp0"), win = sel ? groups.find(x => x.id === sel.value) : null;
+  if (!win) return [];
+  return [{ label: "Winners", group: win, units: g.units }].concat(g.small ? groups.filter(x => x !== win).map(x => ({ label: "Small token", group: x, units: g.small })) : []);
+}
+function groupAward() {
+  const g = GAMES[gEvent], tiers = groupTiers();
+  if (!tiers.length) return null;
+  const ids = tiers.map(t => t.group.id);
+  if (new Set(ids).size !== ids.length) return { err: "A group can only place once." };
+  const valid = k => { const [tm, ...rest] = k.split("|"); const team = +tm; return rosterList(team).includes(rest.join("|")) ? team : null; };
+  const per = [0,1,2,3].map(() => ({ units: 0, kids: 0 }));
+  tiers.forEach(t => t.group.members.forEach(k => { const team = valid(k); if (team != null) { per[team].units += t.units; per[team].kids++; } }));
+  const lines = [], parts = [];
+  per.forEach((c, team) => {
+    if (!c.units) return;
+    const pts = c.units * UNIT[team];
+    lines.push({ team, pts });
+    parts.push(`${nm(team)} ${c.kids} kid${c.kids > 1 ? "s" : ""} (+${pts})`);
+  });
+  const placing = g.places ? tiers.map(t => `${t.label} ${t.group.name}`).join(", ") : `${tiers[0].group.name} won`;
+  return { per, lines, text: `${g.label}: ${placing}. ${parts.join(", ")}` };
+}
+function renderGroups() {
+  const groups = groupsData[gEvent], g = GAMES[gEvent];
+  if (!groups.find(x => x.id === gActive[gEvent])) gActive[gEvent] = groups[0] ? groups[0].id : null;
+  const active = groups.find(x => x.id === gActive[gEvent]);
+  document.querySelectorAll("[data-gev]").forEach(b => b.setAttribute("aria-pressed", b.dataset.gev === gEvent));
+  $("gHint").textContent = groups.length
+    ? "Tap a group, then tap names to put them in it. Tap a name again to take it out."
+    : "Add your groups first (like Table 1, Table 2), then tap names to fill them.";
+  $("gQuick").hidden = gEvent !== "talent" || groups.length > 0;
+  $("gDel").hidden = !active;
+  $("gDel").textContent = gDelArmed ? `Tap again to delete ${active ? active.name : ""}` : "Delete this group";
+  $("gDel").classList.toggle("danger", gDelArmed);
+  $("gList").innerHTML = groups.map(x => `<button data-gsel="${esc(x.id)}" aria-pressed="${x.id === gActive[gEvent]}">${esc(x.name)} · ${x.members.length}</button>`).join("");
+  const anyRoster = [0,1,2,3].some(i => rosterList(i).length);
+  $("gStudents").innerHTML = !anyRoster ? `<span class="note">Add students on the Rosters tab first.</span>` :
+    [0,1,2,3].map(i => {
+      const list = rosterList(i);
+      if (!list.length) return "";
+      return `<div style="--tc:${tc(i)};display:grid;gap:6px"><div style="font:700 .95rem var(--display);color:${tc(i)}">${esc(nm(i))}</div>
+        <div class="stu">${list.map(n => {
+          const k = stuKey(i, n), in_ = groupOf(k);
+          const mine = active && in_ && in_.id === active.id;
+          return `<button data-stu="${esc(k)}" aria-pressed="${!!mine}" ${active ? "" : "disabled"}>${esc(n)}${in_ && !mine ? `<span class="g">In ${esc(in_.name)}</span>` : ""}</button>`;
+        }).join("")}</div></div>`;
+    }).join("");
+  // results / award side
+  $("gAwardHint").textContent = !groups.length
+    ? "Set up the groups first in the Rosters tab."
+    : g.places
+      ? `Pick who placed. Every kid in a group earns the same units for their own team: 1st ${g.places[0]}, 2nd ${g.places[1]}, 3rd ${g.places[2]}, 4th ${g.places[3]}.`
+      : `Pick the winner. Every kid in the winning group earns ${g.units} units for their own team${g.small ? `, and everyone else earns ${g.small}` : ""}.`;
+  const slots = g.places ? g.places.map((_, k) => PLACES[k] + " place") : ["Winner"];
+  const prev = [0,1,2,3].map(k => $("gp" + k) ? $("gp" + k).value : "");
+  $("gPlaces").innerHTML = slots.map((lab, k) => `<label class="f">${lab}<select id="gp${k}"><option value="">None</option>${groups.map(x => `<option value="${esc(x.id)}">${esc(x.name)} (${x.members.length})</option>`).join("")}</select></label>`).join("");
+  slots.forEach((_, k) => { const s = $("gp" + k); if ([...s.options].some(o => o.value === prev[k])) s.value = prev[k]; });
+  const a = groupAward();
+  if (!a) { $("gPreview").innerHTML = `<span class="empty">Pick ${g.places ? "the places" : "the winner"} to see what each team gets.</span>`; $("gAward").disabled = true; return; }
+  if (a.err) { $("gPreview").innerHTML = `<span class="msg err">${esc(a.err)}</span>`; $("gAward").disabled = true; return; }
+  $("gPreview").innerHTML = a.lines.length
+    ? a.per.map((c, team) => c.units ? `<div><b style="color:${tc(team)}">${esc(nm(team))}</b>: ${c.kids} kid${c.kids === 1 ? "" : "s"}, ${c.units} units → +${c.units * UNIT[team]} pts</div>` : "").join("")
+    : `<span class="empty">Those groups have nobody in them yet.</span>`;
+  $("gAward").disabled = !a.lines.length || !store;
+}
+$("gAdd").onclick = () => {
+  const name = $("gName").value.trim().slice(0, 40) || `${gEvent === "trivia" ? "Table" : "Group"} ${groupsData[gEvent].length + 1}`;
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  groupsData[gEvent] = groupsData[gEvent].concat([{ id, name, members: [] }]);
+  gActive[gEvent] = id; $("gName").value = "";
+  saveGroupsSoon(gEvent); renderGroups();
+};
+$("gQuick").onclick = () => {
+  const mk = n => ({ id: n.toLowerCase() + Date.now().toString(36), name: n, members: [] });
+  groupsData.talent = [mk("Boys"), mk("Girls")]; gActive.talent = groupsData.talent[0].id;
+  saveGroupsSoon("talent"); renderGroups();
+};
+$("gDel").onclick = () => {
+  const id = gActive[gEvent]; if (!id) return;
+  if (!gDelArmed) { gDelArmed = true; renderGroups(); setTimeout(() => { gDelArmed = false; renderGroups(); }, 5000); return; }
+  gDelArmed = false;
+  groupsData[gEvent] = groupsData[gEvent].filter(x => x.id !== id);
+  saveGroupsSoon(gEvent); renderGroups();
+};
+$("gPlaces").onchange = renderGroups;
+$("gAward").onclick = async () => {
+  const a = groupAward(); if (!a || a.err || !a.lines.length) return;
+  $("gAward").disabled = true;
+  if (await save(newEvent({ kind: "game", game: gEvent, lines: a.lines, text: a.text }), "gMsg", "Tokens awarded to each home team.")) {
+    [0,1,2,3].forEach(k => { if ($("gp" + k)) $("gp" + k).value = ""; });
+  }
+  render();
+};
+
+/* ---------- capture the flag ---------- */
+function ctfScores() {
+  const mine = caps.filter(c => (c.round || 1) === ctfRound);
+  const s = [0,1,2,3].map(i => {
+    const from = [0,0,0,0];
+    mine.filter(c => c.team === i).forEach(c => from[c.from]++);
+    const others = [0,1,2,3].filter(j => j !== i);
+    const flags = others.reduce((a, j) => a + from[j], 0);
+    const bonus = Math.min(...others.map(j => from[j]));
+    return { team: i, from, flags, bonus, score: flags + bonus };
+  });
+  const order = s.slice().sort((a, b) => b.score - a.score || b.flags - a.flags);
+  return { s, order, mine };
+}
+function renderCtf(t, items) {
+  const { s, order, mine } = ctfScores();
+  $("ctfTitle").textContent = `Capture the flag${ctfRound > 1 ? ", round " + ctfRound : ""}`;
+  $("ctfTeams").innerHTML = s.map(x => {
+    const i = x.team;
+    const jb = items.filter(y => y.team === i && y.item === "jail" && !y.used).length;
+    const btns = [0,1,2,3].filter(j => j !== i).map(j =>
+      `<button class="ghost" style="border-color:${tc(j)};color:${tc(j)};font-weight:700;padding:12px" data-cap="${i}" data-from="${j}">Took ${esc(nm(j))}'s flag <span style="color:var(--muted);font-weight:500">(${x.from[j]})</span></button>`).join("");
+    return `<div class="roster" style="--tc:${tc(i)}">
+      <h3>${esc(nm(i))} <span>${x.flags} flag${x.flags === 1 ? "" : "s"} + ${x.bonus} bonus</span></h3>
+      <div class="bal" style="font:700 2.4rem/1 var(--display);font-variant-numeric:tabular-nums">${x.score} <small style="font-size:.9rem;color:var(--muted)">pts</small></div>
+      <div style="display:grid;gap:6px">${btns}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:8px">
+        <span class="note">${jb ? `${jb} Jailbreak${jb > 1 ? "s" : ""} ready` : "No Jailbreaks"}</span>
+        ${jb ? `<button class="ghost" data-jail="${i}">Use Jailbreak</button>` : ""}
+      </div></div>`;
+  }).join("");
+  let place = 0, prev = null;
+  $("ctfStand").innerHTML = order.map((x, k) => {
+    if (prev === null || x.score !== prev.score || x.flags !== prev.flags) place = k + 1;
+    prev = x;
+    return `<tr><td>${place}${["st","nd","rd","th"][Math.min(place - 1, 3)]}</td><td style="color:${tc(x.team)};font-weight:700">${esc(nm(x.team))}</td><td>${x.flags}</td><td>${x.bonus}</td><td><b>${x.score}</b></td></tr>`;
+  }).join("");
+  $("ctfLog").innerHTML = mine.length ? mine.slice().sort((a, b) => b.ts - a.ts).map(c => {
+    const when = new Date(c.ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const sure = confirmId === c.id;
+    return `<li><div><div class="when">${when}</div><div class="txt"><b style="color:${tc(c.team)}">${esc(nm(c.team))}</b> took <b style="color:${tc(c.from)}">${esc(nm(c.from))}</b>'s flag</div></div>
+      <button class="ghost ${sure ? "danger" : ""}" data-uncap="${esc(c.id)}">${sure ? "Tap to confirm" : "Undo"}</button></li>`;
+  }).join("") : `<li><span class="note">No captures yet. Tap "Took ___'s flag" when a team reports one.</span></li>`;
+  $("ctfReset").textContent = resetArmed ? "Tap again to start a new round" : "Start a new round";
+  $("ctfReset").classList.toggle("danger", resetArmed);
+}
+async function addCap(team, from) {
+  const c = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), ts: Date.now(), round: ctfRound, team, from };
+  try {
+    await store.addCap(c);
+    const after = ctfScores().s[team];
+    flash("ctfMsg", `${nm(team)} took ${nm(from)}'s flag. ${nm(team)} now has ${after.score} (${after.bonus} bonus).`, true);
+  } catch (e) { flash("ctfMsg", "Couldn't save that capture. Try again.", false); }
+  render();
+}
+$("ctfSend").onclick = () => {
+  const { order } = ctfScores();
+  $("game").value = "ctf"; tokens = [0,0,0,0]; small = [0,0,0,0];
+  renderGame(derive().t);
+  [0,1,2,3].forEach(k => { $("p" + k).value = order[k] ? String(order[k].team) : ""; });
+  updateGamePreview();
+  document.querySelector('[data-tab="game"]').click();
+  flash("gameMsg", "Capture the flag standings filled in. Check for ties and Double or Nothing, then tap Award points.", true);
+};
+$("ctfReset").onclick = async () => {
+  if (!resetArmed) { resetArmed = true; renderCtf(derive().t, derive().items); setTimeout(() => { resetArmed = false; renderCtf(derive().t, derive().items); }, 5000); return; }
+  resetArmed = false;
+  try { await store.setRound(ctfRound + 1); ctfRound++; } catch (e) { flash("ctfMsg", "Couldn't start a new round.", false); }
+  render();
+};
+
+/* ---------- inventory ---------- */
+function itemStatus(x) {
+  const u = x.used;
+  if (!u) return "";
+  if (x.item === "shield") return u.blockedFrom != null ? `Blocked ${nm(u.blockedFrom)}'s ${ITEMS[u.blockedItem].label}` : "Used";
+  if (u.note) return u.note;
+  if (u.target != null) return u.blocked ? `Aimed at ${nm(u.target)}, blocked by Shield` : `Used on ${nm(u.target)}`;
+  return "Used";
+}
+function renderInv(items) {
+  const box = $("inv");
+  if (document.activeElement && document.activeElement.closest("#inv")) return;
+  box.innerHTML = [0,1,2,3].map(i => {
+    const mine = items.filter(x => x.team === i).sort((a, b) => (!!a.used - !!b.used) || a.ts - b.ts);
+    const rows = mine.map(x => {
+      const it = ITEMS[x.item];
+      const when = `${x.day} ${new Date(x.ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+      let action = "";
+      if (!x.used) {
+        if (x.item === "dn") action = `<span class="note">Use it on the Game result tab: check the box for that game.</span>`;
+        else if (x.item === "shield") action = `<span class="chip ok">Active</span>`;
+        else if (it.type === "sab") action = `<div class="stepper" style="flex-wrap:wrap"><select id="tg-${esc(x.id)}" aria-label="Target team" style="width:auto;flex:1">${[0,1,2,3].filter(j => j !== i).map(j => `<option value="${j}">${esc(nm(j))}</option>`).join("")}</select><button class="ghost" style="width:auto" data-use="${esc(x.id)}">Use on them</button></div>`;
+        else action = `<button class="ghost" data-use="${esc(x.id)}">Mark used</button>`;
+      }
+      return `<div style="display:grid;gap:4px;padding:8px 0;border-top:1px solid var(--line);${x.used ? "opacity:.6" : ""}">
+        <div style="display:flex;justify-content:space-between;gap:8px"><b>${it.label}</b><span class="note">${when}</span></div>
+        ${x.used ? `<span class="note">${esc(itemStatus(x))}</span>` : action}</div>`;
+    }).join("");
+    const ready = mine.filter(x => !x.used).length;
+    return `<div class="roster" style="--tc:${tc(i)}"><h3>${esc(nm(i))} <span>${ready} ready · ${mine.length - ready} used</span></h3>
+      ${rows || `<span class="note">Nothing bought yet.</span>`}</div>`;
+  }).join("");
+}
+async function useItem(id) {
+  const { t, byId, items } = derive(), x = byId[id];
+  if (!x || x.used) return;
+  const it = ITEMS[x.item];
+  let ev;
+  if (it.type === "sab") {
+    const target = +$("tg-" + id).value;
+    const blocked = t[target].shield > 0;
+    const sh = blocked ? items.find(y => y.team === target && y.item === "shield" && !y.used) : null;
+    ev = newEvent({ kind: "use", buyId: id, team: x.team, item: x.item, target, blocked, shieldId: sh ? sh.id : null,
+      text: `${nm(x.team)} used ${it.label} on ${nm(target)}${blocked ? ", blocked by their Shield" : ""}` });
+    await save(ev, "invMsg", blocked ? `Blocked! ${nm(target)}'s Shield is used up.` : `${it.label} used on ${nm(target)}.`);
+  } else {
+    ev = newEvent({ kind: "use", buyId: id, team: x.team, item: x.item, text: `${nm(x.team)} used ${it.label}` });
+    await save(ev, "invMsg", `${it.label} marked used.`);
+  }
+  render();
+}
+
+/* ---------- lights out ---------- */
+function burnLines(t) {
+  return [0,1,2,3].filter(i => !t[i].bought[day]).map(i => ({ team: i, pts: -Math.round(t[i].bal * 0.2) })).filter(l => l.pts < 0 || true);
+}
+function renderLights(t, burned) {
+  $("lightsTitle").textContent = `Lights out: ${DAYS[day]}`;
+  const lines = burnLines(t);
+  $("lightsRows").innerHTML = [0,1,2,3].map(i => {
+    const l = lines.find(x => x.team === i);
+    return `<tr><td style="color:${tc(i)};font-weight:600">${esc(nm(i))}</td><td>${t[i].bought[day] ? "Yes" : "No"}</td><td>${t[i].bal}</td><td>${l ? l.pts : "0"}</td></tr>`;
+  }).join("");
+  if (burned[day]) { $("lightsGo").disabled = true; $("lightsGo").textContent = `Already applied for ${DAYS[day]}`; }
+  else { $("lightsGo").disabled = !store; $("lightsGo").textContent = `Apply the 20% rule for ${DAYS[day]}`; }
+}
+
+/* ---------- log ---------- */
+function renderLog() {
+  const list = events.slice().sort((a, b) => b.ts - a.ts);
+  $("log").innerHTML = list.length ? list.map(ev => {
+    const when = new Date(ev.ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const sure = confirmId === ev.id;
+    return `<li><div><div class="when">${esc(DAYS[ev.day] || ev.day)} · ${when}</div><div class="txt">${esc(ev.text)}</div></div>
+      <button class="ghost ${sure ? "danger" : ""}" data-undo="${esc(ev.id)}">${sure ? "Tap to confirm" : "Undo"}</button></li>`;
+  }).join("") : `<li><span class="note">Nothing yet. Award a game or record a purchase and it shows up here.</span></li>`;
+}
+
+/* ---------- setup ---------- */
+function renderRosters() {
+  const box = $("rosterRows");
+  if (box.dataset.built && document.activeElement && document.activeElement.closest("#rosterRows")) return;
+  box.innerHTML = [0,1,2,3].map(i => `
+    <div class="roster" style="--tc:${tc(i)}">
+      <h3>${esc(nm(i))} <span>Starts with ${START[i]} · ${rosterList(i).length} students</span></h3>
+      <label class="f">Color<select id="col${i}">${COLOR_LIST.map(c => `<option value="${c}" ${colors[i] === c ? "selected" : ""}>${c[0].toUpperCase() + c.slice(1)}</option>`).join("")}</select></label>
+      <label class="f">Students<textarea id="ros${i}" placeholder="One name per line">${esc(rosters[i] || "")}</textarea></label>
+    </div>`).join("");
+  box.dataset.built = "1";
+}
+function renderSetup() {
+  teamOptions($("adjTeam"), false);
+  const rowsHtml = (lbl, u) => `<tr><td>${lbl}</td><td>${u}</td>${[0,1,2,3].map(i => `<td>${u * UNIT[i]}</td>`).join("")}</tr>`;
+  $("sheet").innerHTML = `<thead><tr><th>Item</th><th>Units</th>${[0,1,2,3].map(i => `<th style="color:${tc(i)}">${esc(nm(i))}</th>`).join("")}</tr></thead><tbody>
+    ${rowsHtml("Up-front winner", 8)}
+    ${rowsHtml("Big game 1st", 12)}${rowsHtml("Big game 2nd", 8)}${rowsHtml("Big game 3rd", 4)}${rowsHtml("Big game 4th", 2)}
+    ${rowsHtml("Trivia winner, per kid", 2)}${rowsHtml("Talent winner, per kid", 2)}${rowsHtml("Talent other side, per kid", 1)}
+    ${Object.values(ITEMS).map(it => rowsHtml(it.label, it.u)).join("")}</tbody>`;
+}
+
+/* ---------- actions ---------- */
+function flash(id, text, ok) { const m = $(id); m.textContent = text; m.className = "msg " + (ok ? "ok" : "err"); setTimeout(() => { if (m.textContent === text) m.textContent = ""; }, 4000); }
+const newEvent = o => Object.assign({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), ts: Date.now(), day }, o);
+
+async function save(ev, msgId, okText) {
+  try { await store.add(ev); flash(msgId, okText, true); return true; }
+  catch (e) { flash(msgId, e && e.code === "quota_exceeded" ? "The scoreboard is full. Undo some old entries." : "Couldn't save that. Check your connection and try again.", false); return false; }
+}
+
+$("gameGo").onclick = async () => {
+  const r = gameLines(); if (r.err || !r.lines.length) return;
+  $("gameGo").disabled = true;
+  if (await save(newEvent({ kind: "game", game: $("game").value, lines: r.lines, text: r.text }), "gameMsg", "Points awarded.")) {
+    [0,1,2,3].forEach(k => $("p" + k).value = ""); tokens = [0,0,0,0]; small = [0,0,0,0];
+    document.querySelectorAll("#dnBox input").forEach(c => c.checked = false);
+  }
+  render();
+};
+$("buyGo").onclick = async () => {
+  const t = derive().t, p = purchase(t); if (!p || p.err) return;
+  $("buyGo").disabled = true;
+  let text = `${nm(buyTeam)} bought ${p.it.label} (−${p.cost})`;
+  if (p.taxed) text += ", taxed";
+  const ev = newEvent({ kind: "buy", team: buyTeam, item: buyItem, taxed: p.taxed, lines: [{ team: buyTeam, pts: -p.cost }], text });
+  if (await save(ev, "buyMsg", "Purchase recorded.")) { buyItem = null; }
+  render();
+};
+$("lightsGo").onclick = async () => {
+  const { t, burned } = derive(); if (burned[day]) return;
+  const lines = burnLines(t).filter(l => l.pts < 0);
+  const text = lines.length ? `Lights out ${DAYS[day]}: ` + lines.map(l => `${nm(l.team)} ${l.pts}`).join(", ") : `Lights out ${DAYS[day]}: every team bought something`;
+  await save(newEvent({ kind: "burn", lines, text }), "lightsMsg", "Applied.");
+  render();
+};
+$("adjGo").onclick = async () => {
+  const pts = Math.round(+$("adjPts").value), team = +$("adjTeam").value;
+  if (!pts) { flash("adjMsg", "Enter a number of points.", false); return; }
+  const note = $("adjNote").value.trim();
+  if (await save(newEvent({ kind: "adjust", lines: [{ team, pts }], text: `Adjustment: ${nm(team)} ${pts > 0 ? "+" : ""}${pts}${note ? " (" + note + ")" : ""}` }), "adjMsg", "Adjustment added.")) {
+    $("adjPts").value = ""; $("adjNote").value = "";
+  }
+  render();
+};
+$("rosterGo").onclick = async () => {
+  const c = [0,1,2,3].map(i => $("col" + i).value);
+  if (new Set(c).size !== 4) { flash("rosterMsg", "Each team needs its own color.", false); return; }
+  const r = [0,1,2,3].map(i => $("ros" + i).value.slice(0, 4000));
+  try { await store.setCfg({ colors: c, rosters: r }); colors = c; rosters = r; flash("rosterMsg", "Rosters and colors saved.", true); }
+  catch (e) { flash("rosterMsg", "Couldn't save. Check your connection and try again.", false); }
+  $("rosterRows").dataset.built = ""; document.activeElement && document.activeElement.blur(); render();
+};
+
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.day) { day = b.dataset.day; try { localStorage.setItem("tsb-day", day); } catch (er) {} render(); }
+  else if (b.dataset.sort) { sortBy = b.dataset.sort; render(); }
+  else if (b.dataset.tab) {
+    document.querySelectorAll("[role=tab]").forEach(x => x.setAttribute("aria-selected", x === b));
+    document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== b.dataset.tab);
+  }
+  else if (b.dataset.tok != null) { const i = +b.dataset.tok; tokens[i] = Math.max(0, tokens[i] + +b.dataset.d); renderGame(derive().t); }
+  else if (b.dataset.sm != null) { const i = +b.dataset.sm; small[i] = Math.max(0, small[i] + +b.dataset.d); renderGame(derive().t); }
+  else if (b.dataset.bt != null) { buyTeam = +b.dataset.bt; render(); }
+  else if (b.dataset.bi) { buyItem = b.dataset.bi; render(); }
+  else if (b.dataset.use) { b.disabled = true; b.blur(); await useItem(b.dataset.use); }
+  else if (b.dataset.cap != null) { b.disabled = true; await addCap(+b.dataset.cap, +b.dataset.from); }
+  else if (b.dataset.gev) { gEvent = b.dataset.gev; gDelArmed = false; renderGroups(); }
+  else if (b.dataset.gsel) { gActive[gEvent] = b.dataset.gsel; gDelArmed = false; renderGroups(); }
+  else if (b.dataset.stu) {
+    const k = b.dataset.stu, act = gActive[gEvent]; if (!act) return;
+    const wasMine = (groupOf(k) || {}).id === act;
+    groupsData[gEvent] = groupsData[gEvent].map(x => ({ ...x, members: x.members.filter(m => m !== k).concat(!wasMine && x.id === act ? [k] : []) }));
+    saveGroupsSoon(gEvent); renderGroups();
+  }
+  else if (b.dataset.jail != null) {
+    const team = +b.dataset.jail, jb = derive().items.find(y => y.team === team && y.item === "jail" && !y.used);
+    if (jb) { b.disabled = true; await useItem(jb.id); flash("ctfMsg", `${nm(team)} used a Jailbreak.`, true); }
+  }
+  else if (b.dataset.uncap) {
+    const id = b.dataset.uncap;
+    if (confirmId !== id) { confirmId = id; render(); setTimeout(() => { if (confirmId === id) { confirmId = null; render(); } }, 5000); return; }
+    confirmId = null;
+    try { await store.delCap(id); } catch (er) {}
+    render();
+  }
+  else if (b.dataset.undo) {
+    const id = b.dataset.undo;
+    if (confirmId !== id) { confirmId = id; renderLog(); setTimeout(() => { if (confirmId === id) { confirmId = null; renderLog(); } }, 5000); return; }
+    confirmId = null;
+    try { await store.del(id); } catch (er) {}
+    render();
+  }
+});
+$("game").onchange = () => { tokens = [0,0,0,0]; small = [0,0,0,0]; renderGame(derive().t); };
+["p0","p1","p2","p3"].forEach(id => $(id).onchange = updateGamePreview);
+$("dnBox").onchange = updateGamePreview;
+
+/* ---------- backup ---------- */
+function snapshot() {
+  return { app: "talents-scoreboard", v: 1, savedAt: Date.now(), events, caps, round: ctfRound, cfg: { colors, rosters }, groups: groupsData };
+}
+let impArmed = null;
+$("expGo").onclick = async () => {
+  const data = JSON.stringify(snapshot(), null, 1);
+  const d = new Date(), pad = n => String(n).padStart(2, "0");
+  const filename = `scoreboard-backup-${d.getMonth() + 1}-${d.getDate()}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+  let dl = null;
+  try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) { dl = null; }
+  if (dl) {
+    try { await dl.save({ filename, data }); flash("bakMsg", "Backup saved.", true); }
+    catch (e) { flash("bakMsg", e && e.code === "declined" ? "Backup not saved." : "Couldn't save the backup here.", false); }
+    return;
+  }
+  try {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+    a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    flash("bakMsg", "Backup saved.", true);
+  } catch (e) { flash("bakMsg", "Couldn't save the backup.", false); }
+};
+$("impGo").onclick = () => $("impFile").click();
+$("impFile").onchange = async () => {
+  const f = $("impFile").files[0]; $("impFile").value = "";
+  if (!f) return;
+  let d;
+  try { d = JSON.parse(await f.text()); } catch (e) { flash("bakMsg", "That file isn't a scoreboard backup.", false); return; }
+  if (!d || d.app !== "talents-scoreboard" || !Array.isArray(d.events)) { flash("bakMsg", "That file isn't a scoreboard backup.", false); return; }
+  if (!store || !store.replaceAll) { flash("bakMsg", "Loading a backup only works in the standalone app.", false); return; }
+  if (impArmed !== f.name) {
+    impArmed = f.name;
+    flash("bakMsg", `This replaces everything on this device with the backup from ${new Date(d.savedAt).toLocaleString()}. Tap Load a backup file and pick it again to confirm.`, false);
+    setTimeout(() => { impArmed = null; }, 30000);
+    return;
+  }
+  impArmed = null;
+  await store.replaceAll(d);
+  flash("bakMsg", `Loaded ${d.events.length} entries from the backup.`, true);
+  $("rosterRows").dataset.built = ""; render();
+};
+
+/* ---------- storage ---------- */
+function setStatus(text) { const s = $("status"); s.textContent = text; s.hidden = !text; }
+
+function localStore() {
+  const KEY = "tsb-local";
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || { events: [], cfg: null }; } catch (e) { return { events: [], cfg: null }; } };
+  const persist = d => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} };
+  const d = load(); events = d.events || []; if (d.cfg) { colors = d.cfg.colors || colors; rosters = d.cfg.rosters || rosters; }
+  d.caps = d.caps || []; caps = d.caps; ctfRound = d.round || 1;
+  if (d.groups) groupsData = { trivia: d.groups.trivia || [], talent: d.groups.talent || [] };
+  return {
+    addCap: async c => { d.caps.push(c); caps = d.caps; persist(d); },
+    delCap: async id => { d.caps = d.caps.filter(c => c.id !== id); caps = d.caps; persist(d); },
+    setRound: async n => { d.round = n; persist(d); },
+    setGroups: async (ev, gs) => { d.groups = d.groups || {}; d.groups[ev] = gs; persist(d); },
+    replaceAll: async b => {
+      d.events = b.events || []; d.caps = b.caps || []; d.round = b.round || 1;
+      d.cfg = b.cfg || null; d.groups = b.groups || { trivia: [], talent: [] };
+      persist(d);
+      events = d.events; caps = d.caps; ctfRound = d.round;
+      if (d.cfg) { colors = d.cfg.colors || COLOR_LIST.slice(); rosters = d.cfg.rosters || ["", "", "", ""]; }
+      groupsData = { trivia: d.groups.trivia || [], talent: d.groups.talent || [] };
+    },
+    add: async ev => { d.events.push(ev); events = d.events; persist(d); },
+    del: async id => { d.events = d.events.filter(e => e.id !== id); events = d.events; persist(d); },
+    setCfg: async c => { d.cfg = c; persist(d); },
+  };
+}
+
+async function start() {
+  render();
+  let db = null;
+  try { db = window.claude && window.claude.use ? await window.claude.use("db") : null; } catch (e) { db = null; }
+  if (!db) {
+    store = localStore();
+    setStatus("");
+    render(); return;
+  }
+  const col = db.collection("events");
+  store = {
+    add: ev => col.doc(ev.id).set(ev),
+    del: id => col.doc(id).delete(),
+    setCfg: c => db.doc("config/main").set(c),
+    addCap: c => db.collection("caps").doc(c.id).set(c),
+    delCap: id => db.collection("caps").doc(id).delete(),
+    setRound: n => db.doc("config/ctf").set({ round: n }),
+    setGroups: (ev, gs) => db.doc("groups/" + ev).set({ event: ev, groups: gs }),
+  };
+  db.collection("caps").orderBy("ts").onSnapshot(snap => { caps = snap.docs.map(d => d.data()).filter(Boolean); render(); }, () => {});
+  ["trivia", "talent"].forEach(ev => db.doc("groups/" + ev).onSnapshot(s => {
+    const d = s.exists ? s.data() : null;
+    if (d && Array.isArray(d.groups) && !gPending[ev]) { groupsData[ev] = d.groups; renderGroups(); }
+  }, () => {}));
+  db.doc("config/ctf").onSnapshot(s => { const d = s.exists ? s.data() : null; if (d && d.round) { ctfRound = d.round; render(); } }, () => {});
+  const timer = setTimeout(() => setStatus("Can't reach the shared scoreboard yet. Numbers may be out of date."), 10000);
+  col.orderBy("ts").onSnapshot(snap => {
+    events = snap.docs.map(d => d.data()).filter(Boolean);
+    if (!snap.metadata.fromCache) { clearTimeout(timer); setStatus(""); }
+    render();
+  }, err => { clearTimeout(timer); setStatus(err.code === "revoked" ? "" : "Lost connection to the shared scoreboard. Reload to reconnect."); });
+  db.doc("config/main").onSnapshot(s => {
+    const d = s.exists ? s.data() : null;
+    if (d) {
+      if (Array.isArray(d.colors) && d.colors.length === 4) colors = d.colors;
+      if (Array.isArray(d.rosters)) rosters = d.rosters;
+      $("rosterRows").dataset.built = ""; render();
+    }
+  }, () => {});
+  render();
+}
+start();
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+</script>
+</body>
+</html>
