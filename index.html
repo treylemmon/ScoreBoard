@@ -154,7 +154,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
   </div>
   <div class="top" style="justify-content:flex-end">
     <div class="seg" id="sortSeg" role="group" aria-label="Sort">
-      <button data-sort="team">Team order</button><button data-sort="pts">Most points</button><button data-sort="grow">Growth</button>
+      <button data-sort="pts">Most points</button><button data-sort="grow">Growth</button>
     </div>
   </div>
   <div class="teams" id="teams"></div>
@@ -344,7 +344,7 @@ let groupsData = { trivia: [], talent: [] }, gEvent = "trivia", gActive = { triv
 const gPending = {}, gTimers = {};
 let store = null;          // {add, del, setCfg}
 let day = guessDay();
-let sortBy = "team";
+let sortBy = "pts";
 let view = (() => { try { return localStorage.getItem("tsb-view") === "student" ? "student" : "staff"; } catch (e) { return "staff"; } })();
 let stuTeam = null, viewArmed = false;
 let buyTeam = null, buyItem = null;
