@@ -20,7 +20,7 @@ Student names live only in the backup file and on the device, never in this repo
 ## Making a change
 
 1. Edit the file.
-2. Open `sw.js` and bump the version: `scoreboard-v1` → `scoreboard-v2`. **If you skip this, installed copies won't update.**
+2. Open `sw.js` and bump the version (for example `scoreboard-v3` → `scoreboard-v4`). **If you skip this, installed copies won't update.**
 3. Upload the changed files to GitHub.
 
 ## The math
