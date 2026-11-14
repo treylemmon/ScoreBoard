@@ -1,5 +1,5 @@
 // Bump this every time you change a file, or installed copies won't update.
-const VERSION = "scoreboard-v4";
+const VERSION = "scoreboard-v5";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

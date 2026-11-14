@@ -175,7 +175,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
   <section class="panel" data-panel="game">
     <label class="f">Which game?
       <select id="game">
-        <option value="upfront">Up-front game (session)</option>
+        <option value="upfront2">Session 2 up-front game (Sat morning)</option>
+        <option value="upfront4">Session 4 up-front game (Sun morning)</option>
         <option value="ctf">Capture the flag</option>
         <option value="afternoon">Afternoon game</option>
         <option value="trivia">Trivia</option>
@@ -320,6 +321,8 @@ const TAX_EXTRA = 3;
 const PLACES = ["1st", "2nd", "3rd", "4th"];
 const GAMES = {
   upfront:   { label: "Up-front game",    mode: "place",  units: [8] },
+  upfront2:  { label: "Session 2 up-front game", mode: "place", units: [8] },
+  upfront4:  { label: "Session 4 up-front game", mode: "place", units: [8] },
   ctf:       { label: "Capture the flag", mode: "place",  units: [12, 8, 4, 2] },
   afternoon: { label: "Afternoon game",   mode: "place",  units: [12, 8, 4, 2] },
   trivia:    { label: "Trivia",           mode: "tokens", units: 2 },
