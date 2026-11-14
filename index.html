@@ -1010,6 +1010,13 @@ $("impFile").onchange = async () => {
   if (!f) return;
   let d;
   try { d = JSON.parse(await f.text()); } catch (e) { flash("bakMsg", "That file isn't a scoreboard backup.", false); return; }
+  if (d && d.app === "talents-scoreboard-groups" && GAMES[d.event] && Array.isArray(d.groups)) {
+    groupsData[d.event] = d.groups;
+    try { await store.setGroups(d.event, d.groups); } catch (e) {}
+    gEvent = d.event;
+    flash("bakMsg", `Loaded ${d.groups.length} ${GAMES[d.event].label.toLowerCase()} groups: ${d.groups.map(g => g.name + " (" + g.members.length + ")").join(", ")}.`, true);
+    render(); return;
+  }
   if (!d || d.app !== "talents-scoreboard" || !Array.isArray(d.events)) { flash("bakMsg", "That file isn't a scoreboard backup.", false); return; }
   if (!store || !store.replaceAll) { flash("bakMsg", "Loading a backup only works in the standalone app.", false); return; }
   if (impArmed !== f.name) {
