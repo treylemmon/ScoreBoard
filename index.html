@@ -177,10 +177,6 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
       <select id="game">
         <option value="upfront2">Session 2 up-front game (Sat morning)</option>
         <option value="upfront4">Session 4 up-front game (Sun morning)</option>
-        <option value="ctf">Capture the flag</option>
-        <option value="afternoon">Afternoon game</option>
-        <option value="trivia">Trivia</option>
-        <option value="talent">Talent show</option>
       </select>
     </label>
     <div id="placeBox" class="row4">
@@ -727,6 +723,7 @@ async function addCap(team, from) {
 }
 $("ctfSend").onclick = () => {
   const { order } = ctfScores();
+  if (![...$("game").options].some(o => o.value === "ctf")) $("game").add(new Option("Capture the flag", "ctf"));
   $("game").value = "ctf"; tokens = [0,0,0,0]; small = [0,0,0,0];
   renderGame(derive().t);
   [0,1,2,3].forEach(k => { $("p" + k).value = order[k] ? String(order[k].team) : ""; });
