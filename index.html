@@ -219,6 +219,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
     <div class="preview" id="gPreview"></div>
     <button class="go" id="gAward">Award tokens</button>
     <div class="msg" id="gMsg" aria-live="polite"></div>
+    <div style="border-top:1px solid var(--line);padding-top:14px;display:grid;gap:10px">
+      <h2>Bonus unit</h2>
+      <p class="note" style="margin:0">Give a team 1 bonus unit for props, the funniest act, or anything you decide. Tap the team, then tap again to confirm.</p>
+      <input type="text" id="bonusNote" placeholder="Reason (optional), e.g. best props">
+      <div class="pick" id="bonusTeams"></div>
+      <div class="msg" id="bonusMsg" aria-live="polite"></div>
+    </div>
   </section>
 
   <!-- CAPTURE THE FLAG -->
@@ -303,7 +310,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
     <div class="msg" id="bakMsg" aria-live="polite"></div>
     <h2>Price and prize sheet</h2>
     <div class="scroll"><table id="sheet"></table></div>
-    <p class="note" style="margin:0">1 unit = 10% of a team's starting points. Tax makes the target pay double on their next purchase. Talent show small tokens are worth 1 unit.</p>
+    <p class="note" style="margin:0">1 unit = 10% of a team's starting points. Tax makes the target pay double on their next purchase. Bonus units go straight to a team.</p>
   </section>
   </div>
 </div>
@@ -322,7 +329,7 @@ const GAMES = {
   ctf:       { label: "Capture the flag", mode: "place",  units: [12, 8, 4, 2] },
   afternoon: { label: "Afternoon game",   mode: "place",  units: [12, 8, 4, 2] },
   trivia:    { label: "Trivia",           mode: "tokens", units: 2 },
-  talent:    { label: "Talent show",      mode: "tokens", units: 2, small: 1 },
+  talent:    { label: "Talent show",      mode: "tokens", units: 1 },
 };
 const ITEMS = {
   lifeline: { label: "Lifeline",          u: 5, type: "up", retired: true },
@@ -594,7 +601,12 @@ function groupAward() {
   const placing = g.places ? tiers.map(t => `${t.label} ${t.group.name}`).join(", ") : `${tiers[0].group.name} won`;
   return { per, lines, text: `${g.label}: ${placing}. ${parts.join(", ")}` };
 }
+let bonusArmed = null;
+function renderBonus() {
+  $("bonusTeams").innerHTML = [0,1,2,3].map(i => `<button data-bonus="${i}" style="--tc:${tc(i)}" aria-pressed="${bonusArmed === i}"><span style="color:${tc(i)}">${esc(nm(i))}</span><span class="c">${bonusArmed === i ? `Tap again: +${UNIT[i]} pts` : `+1 unit = ${UNIT[i]} pts`}</span></button>`).join("");
+}
 function renderGroups() {
+  renderBonus();
   const groups = groupsData[gEvent], g = GAMES[gEvent];
   if (!groups.find(x => x.id === gActive[gEvent])) gActive[gEvent] = groups[0] ? groups[0].id : null;
   const active = groups.find(x => x.id === gActive[gEvent]);
@@ -881,7 +893,7 @@ function renderSetup() {
   $("sheet").innerHTML = `<thead><tr><th>Item</th><th>Units</th>${[0,1,2,3].map(i => `<th style="color:${tc(i)}">${esc(nm(i))}</th>`).join("")}</tr></thead><tbody>
     ${rowsHtml("Up-front winner", 8)}
     ${rowsHtml("Big game 1st", 12)}${rowsHtml("Big game 2nd", 8)}${rowsHtml("Big game 3rd", 4)}${rowsHtml("Big game 4th", 2)}
-    ${rowsHtml("Trivia winner, per kid", 2)}${rowsHtml("Talent winner, per kid", 2)}${rowsHtml("Talent other side, per kid", 1)}
+    ${rowsHtml("Trivia winner, per kid", 2)}${rowsHtml("Talent winner, per kid", 1)}${rowsHtml("Bonus", 1)}
     ${Object.values(ITEMS).map(it => rowsHtml(it.label, it.u)).join("")}</tbody>`;
 }
 
@@ -965,6 +977,14 @@ document.addEventListener("click", async e => {
   else if (b.dataset.use) { b.disabled = true; b.blur(); await useItem(b.dataset.use); }
   else if (b.dataset.cap != null) { b.disabled = true; await addCap(+b.dataset.cap, +b.dataset.from); }
   else if (b.dataset.gev) { gEvent = b.dataset.gev; gDelArmed = false; renderGroups(); }
+  else if (b.dataset.bonus != null) {
+    const team = +b.dataset.bonus;
+    if (bonusArmed !== team) { bonusArmed = team; renderBonus(); setTimeout(() => { if (bonusArmed === team) { bonusArmed = null; renderBonus(); } }, 4000); return; }
+    bonusArmed = null;
+    const note = $("bonusNote").value.trim().slice(0, 60);
+    if (await save(newEvent({ kind: "bonus", lines: [{ team, pts: UNIT[team] }], text: `Bonus: ${nm(team)} +1 unit (+${UNIT[team]})${note ? " for " + note : ""}` }), "bonusMsg", `${nm(team)} got a bonus unit.`)) $("bonusNote").value = "";
+    render();
+  }
   else if (b.dataset.gsel) { gActive[gEvent] = b.dataset.gsel; gDelArmed = false; renderGroups(); }
   else if (b.dataset.stu) {
     const k = b.dataset.stu, act = gActive[gEvent]; if (!act) return;
