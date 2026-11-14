@@ -270,7 +270,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <input type="text" id="gName" placeholder="New group name, e.g. Group 6" style="flex:1;min-width:160px">
       <button class="ghost" id="gAdd">Add group</button>
-      <button class="ghost" id="gQuick" hidden>Add Boys and Girls</button>
+      <button class="ghost" id="gQuick" hidden>Set up middle and high school boys and girls</button>
       <button class="ghost" id="gDel" hidden>Delete this group</button>
     </div>
     <div id="gStudents" style="display:grid;gap:14px"></div>
@@ -644,10 +644,25 @@ $("gAdd").onclick = () => {
   gActive[gEvent] = id; $("gName").value = "";
   saveGroupsSoon(gEvent); renderGroups();
 };
+// Talent show split by school level and gender. Students are matched by a short
+// fingerprint of their name, so no names are stored in this file.
+const TALENT_SPLIT = {"b4101696":"msg","2243c2ca":"msg","cd5548b4":"msg","5d179bca":"msg","0f42c785":"msg","ff1e9fff":"msg","312b0fa5":"msg","086ae952":"msg","31131ea2":"msg","d658e85c":"msg","16eebb41":"msg","1604e6bd":"msg","e999e67c":"msg","886eb6a5":"msg","07586a04":"msg","83a6bbad":"msg","76201309":"msb","34ce72cd":"msb","a5372db4":"msb","702b99e0":"msb","6a602bfd":"msb","4b31e403":"msb","7e053208":"msb","0783b336":"msb","7572980b":"hsg","f4423b5b":"hsg","69654142":"hsg","e6d41cf8":"hsg","9ca757e0":"hsg","21f68157":"hsg","a26f7782":"hsg","fe4a780e":"hsg","c53f7102":"hsg","7dd8d441":"hsg","9ff7b83b":"hsg","b9a19f23":"hsg","25169237":"hsb","f712f6fa":"hsb","47202096":"hsb","5a36fc5f":"hsb","dcb1888e":"hsb","faa17319":"hsb","74aafa37":"hsb","c1e7ab18":"hsb","9d808320":"hsb","8fa6f9b2":"hsb","535f986e":"hsb","467b64c1":"hsb","783f2799":"hsb","10b90284":"hsb","5aa03f0f":"hsb","57eb44f4":"hsb","e0fa00b8":"hsb","53277c91":"hsb"};
+const TALENT_GROUPS = [["msg", "Middle school girls"], ["msb", "Middle school boys"], ["hsg", "High school girls"], ["hsb", "High school boys"]];
+function nameHash(s) {
+  let h = 0x811c9dc5;
+  for (const byte of new TextEncoder().encode(s.toLowerCase())) { h ^= byte; h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, "0");
+}
 $("gQuick").onclick = () => {
-  const mk = n => ({ id: n.toLowerCase() + Date.now().toString(36), name: n, members: [] });
-  groupsData.talent = [mk("Boys"), mk("Girls")]; gActive.talent = groupsData.talent[0].id;
+  const groups = TALENT_GROUPS.map(([k, name]) => ({ id: "t-" + k, name, members: [] }));
+  const missing = [];
+  [0,1,2,3].forEach(team => rosterList(team).forEach(n => {
+    const g = groups.find(x => x.id === "t-" + TALENT_SPLIT[nameHash(n)]);
+    if (g) g.members.push(stuKey(team, n)); else missing.push(n);
+  }));
+  groupsData.talent = groups; gActive.talent = groups[0].id;
   saveGroupsSoon("talent"); renderGroups();
+  flash("gMsg", missing.length ? `Not placed (add by hand): ${missing.join(", ")}` : "Talent show groups set up.", !missing.length);
 };
 $("gDel").onclick = () => {
   const id = gActive[gEvent]; if (!id) return;
