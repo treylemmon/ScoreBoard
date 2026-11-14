@@ -36,6 +36,14 @@
   --good:#5BD49A; --good-soft:#163A2A; --bad:#FF8A80; --bad-soft:#3E1C1C;
   --red:#FF7070; --yellow:#F2CC3D; --orange:#FF9A4A; --blue:#6FA3FF; color-scheme:dark}
 *{box-sizing:border-box}
+.sview{display:grid;gap:16px}
+.stu-card{background:var(--surface);border:1px solid var(--line);border-top:8px solid var(--tc);border-radius:16px;padding:20px;display:grid;gap:16px}
+.stu-card .big{font:700 4rem/1 var(--display);font-variant-numeric:tabular-nums}
+.stu-card .big small{font-size:1.2rem;color:var(--muted);font-weight:500}
+.stu-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.stu-items div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:2px;font-weight:600}
+.stu-items .c{font-size:.85rem;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.stu-items .off{opacity:.45}
 textarea{font:500 .95rem/1.5 var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px;width:100%;min-width:0;min-height:180px;resize:vertical}
 .roster{display:grid;gap:8px;border:1px solid var(--line);border-top:5px solid var(--tc);border-radius:12px;padding:12px;min-width:0}
 .roster h3{font-size:1rem;color:var(--tc);display:flex;justify-content:space-between;gap:8px}
@@ -122,16 +130,29 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
   <div class="top">
     <div>
       <h1>Talents Scoreboard</h1>
-      <div class="sub">Staff only. Fall Retreat points, prizes and store.</div>
+      <div class="sub" id="subline">Fall Retreat points, prizes and store.</div>
     </div>
-    <div class="seg" id="daySeg" role="group" aria-label="Day">
-      <button data-day="Fri">Fri</button><button data-day="Sat">Sat</button><button data-day="Sun">Sun</button>
+    <div class="seg" id="viewSeg" role="group" aria-label="View">
+      <button data-view="staff">Staff</button><button data-view="student">Student</button>
     </div>
   </div>
+
+  <!-- STUDENT VIEW: one team at a time, safe to show on screen -->
+  <div id="studentView" class="sview" hidden>
+    <div class="pick" id="stuTeams"></div>
+    <div id="stuCard"></div>
+  </div>
+
+  <div id="staffView" class="sview">
   <div class="status" id="status" hidden></div>
 
   <div class="top">
     <h2>Teams</h2>
+    <div class="seg" id="daySeg" role="group" aria-label="Day">
+      <button data-day="Fri">Fri</button><button data-day="Sat">Sat</button><button data-day="Sun">Sun</button>
+    </div>
+  </div>
+  <div class="top" style="justify-content:flex-end">
     <div class="seg" id="sortSeg" role="group" aria-label="Sort">
       <button data-sort="team">Team order</button><button data-sort="pts">Most points</button><button data-sort="grow">Growth</button>
     </div>
@@ -230,6 +251,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
     <p class="note" style="margin:0">Any team that bought nothing today loses 20% of its points. Run this once per night after the store closes.</p>
     <div class="scroll"><table><thead><tr><th>Team</th><th>Bought today?</th><th>Points</th><th>Loses</th></tr></thead><tbody id="lightsRows"></tbody></table></div>
     <button class="go" id="lightsGo">Apply the 20% rule</button>
+    <button class="ghost" id="lightsSkip">Skip this day, no penalty</button>
     <div class="msg" id="lightsMsg" aria-live="polite"></div>
   </section>
 
@@ -286,6 +308,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
     <div class="scroll"><table id="sheet"></table></div>
     <p class="note" style="margin:0">1 unit = 10% of a team's starting points. Tax makes the target pay double on their next purchase. Talent show small tokens are worth 1 unit.</p>
   </section>
+  </div>
 </div>
 
 <script>
@@ -323,6 +346,8 @@ const gPending = {}, gTimers = {};
 let store = null;          // {add, del, setCfg}
 let day = guessDay();
 let sortBy = "team";
+let view = (() => { try { return localStorage.getItem("tsb-view") === "student" ? "student" : "staff"; } catch (e) { return "staff"; } })();
+let stuTeam = null, viewArmed = false;
 let buyTeam = null, buyItem = null;
 let tokens = [0,0,0,0], small = [0,0,0,0];
 let confirmId = null;
@@ -343,7 +368,7 @@ function guessDay() {
 /* ---------- derived state ---------- */
 function derive() {
   const t = START.map(s => ({ bal: s, dn: 0, tax: 0, shield: 0, ready: 0, bought: {} }));
-  const burned = {}, items = [], byId = {};
+  const burned = {}, skipped = {}, items = [], byId = {};
   const firstUnused = (team, item) => items.find(x => x.team === team && x.item === item && !x.used);
   const applySab = (it, ev, target, blocked, shieldId) => {
     it.used = { ts: ev.ts, target, blocked };
@@ -375,16 +400,17 @@ function derive() {
       if (ITEMS[it.item].type === "sab") applySab(it, ev, ev.target, ev.blocked, ev.shieldId);
       else it.used = { ts: ev.ts };
     }
-    if (ev.kind === "burn") burned[ev.day] = true;
+    if (ev.kind === "burn") { burned[ev.day] = true; if (ev.skipped) skipped[ev.day] = true; }
   }
   items.forEach(x => { if (!x.used) { t[x.team].ready++; if (x.item === "dn") t[x.team].dn++; if (x.item === "shield") t[x.team].shield++; } });
   t.forEach(x => { x.tax = Math.max(0, x.tax); });
-  return { t, burned, items, byId };
+  return { t, burned, skipped, items, byId };
 }
 
 /* ---------- render ---------- */
 function render() {
-  const { t, burned, items } = derive();
+  const { t, burned, skipped, items } = derive();
+  renderView(t, items);
   // day selector
   document.querySelectorAll("#daySeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.day === day));
   document.querySelectorAll("#sortSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.sort === sortBy));
@@ -396,7 +422,8 @@ function render() {
   $("teams").innerHTML = order.map((i, r) => {
     const x = t[i], g = (x.bal / START[i]).toFixed(1);
     const chips = [];
-    chips.push(x.bought[day] ? `<span class="chip ok">Bought ${day}</span>` : `<span class="chip warn">No buy ${day}</span>`);
+    if (skipped[day]) chips.push(`<span class="chip">${day} skipped</span>`);
+    else chips.push(x.bought[day] ? `<span class="chip ok">Bought ${day}</span>` : `<span class="chip warn">No buy ${day}</span>`);
     if (x.ready) chips.push(`<span class="chip gold">${x.ready} item${x.ready > 1 ? "s" : ""} ready</span>`);
     if (x.shield) chips.push(`<span class="chip">Shield up</span>`);
     if (x.tax) chips.push(`<span class="chip warn">${x.tax > 1 ? x.tax + " taxes: next " + x.tax + " buys double" : "Taxed: next buy double"}</span>`);
@@ -409,7 +436,7 @@ function render() {
     </article>`;
   }).join("");
 
-  renderGame(t); renderStore(t); renderCtf(t, items); renderGroups(); renderInv(items); renderLights(t, burned); renderLog(); renderRosters(); renderSetup();
+  renderGame(t); renderStore(t); renderCtf(t, items); renderGroups(); renderInv(items); renderLights(t, burned, skipped); renderLog(); renderRosters(); renderSetup();
 }
 
 function teamOptions(sel, withBlank, exclude) {
@@ -763,18 +790,50 @@ async function useItem(id) {
   render();
 }
 
+/* ---------- staff / student view ---------- */
+function renderView(t, items) {
+  document.querySelectorAll("#viewSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === view));
+  const staffBtn = document.querySelector('#viewSeg [data-view="staff"]');
+  staffBtn.textContent = viewArmed ? "Tap again" : "Staff";
+  $("staffView").hidden = view !== "staff";
+  $("studentView").hidden = view !== "student";
+  $("subline").textContent = view === "staff" ? "Staff view. Fall Retreat points, prizes and store." : "Pick your team.";
+  if (view !== "student") return;
+  $("stuTeams").innerHTML = [0,1,2,3].map(i => `<button data-stu-team="${i}" style="--tc:${tc(i)}" aria-pressed="${stuTeam === i}"><span style="color:${tc(i)};font-size:1.1rem">${esc(nm(i))}</span></button>`).join("");
+  if (stuTeam == null) { $("stuCard").innerHTML = `<p class="note" style="margin:0;font-size:1rem">Tap a team to see its points and store prices.</p>`; return; }
+  const i = stuTeam, x = t[i], u = UNIT[i];
+  const ready = items.filter(y => y.team === i && !y.used);
+  const counts = {}; ready.forEach(y => counts[y.item] = (counts[y.item] || 0) + 1);
+  const owned = Object.entries(counts).map(([k, n]) => `<div>${ITEMS[k].label}${n > 1 ? " ×" + n : ""}<span class="c">${ITEMS[k].type === "def" ? "Active" : "Ready to use"}</span></div>`).join("");
+  const storeRows = Object.values(ITEMS).map(it => {
+    if (it.retired) return `<div class="off"><s>${it.label}</s><span class="c">Done for the weekend</span></div>`;
+    const base = it.u * u, price = x.tax ? base * 2 : base;
+    return `<div>${it.label}<span class="c">${price} pts${x.tax ? ` (normally ${base})` : ""}</span></div>`;
+  }).join("");
+  $("stuCard").innerHTML = `<div class="stu-card" style="--tc:${tc(i)}">
+    <div style="display:grid;gap:6px"><h2 style="color:${tc(i)};font-size:1.6rem">${esc(nm(i))}</h2>
+      <div class="big">${x.bal} <small>points</small></div></div>
+    ${x.tax ? `<div class="status" style="background:var(--bad-soft);color:var(--bad);font-weight:600">You've been taxed${x.tax > 1 ? " " + x.tax + " times" : ""}. Your next ${x.tax > 1 ? x.tax + " purchases cost" : "purchase costs"} double.</div>` : ""}
+    <div style="display:grid;gap:8px"><h3>Your items</h3>${owned ? `<div class="stu-items">${owned}</div>` : `<span class="note">Nothing yet.</span>`}</div>
+    <div style="display:grid;gap:8px"><h3>Store prices for ${esc(nm(i))}</h3><div class="stu-items">${storeRows}</div></div>
+  </div>`;
+}
+
 /* ---------- lights out ---------- */
 function burnLines(t) {
   return [0,1,2,3].filter(i => !t[i].bought[day]).map(i => ({ team: i, pts: -Math.round(t[i].bal * 0.2) })).filter(l => l.pts < 0 || true);
 }
-function renderLights(t, burned) {
+function renderLights(t, burned, skipped) {
   $("lightsTitle").textContent = `Lights out: ${DAYS[day]}`;
   const lines = burnLines(t);
   $("lightsRows").innerHTML = [0,1,2,3].map(i => {
     const l = lines.find(x => x.team === i);
     return `<tr><td style="color:${tc(i)};font-weight:600">${esc(nm(i))}</td><td>${t[i].bought[day] ? "Yes" : "No"}</td><td>${t[i].bal}</td><td>${l ? l.pts : "0"}</td></tr>`;
   }).join("");
-  if (burned[day]) { $("lightsGo").disabled = true; $("lightsGo").textContent = `Already applied for ${DAYS[day]}`; }
+  $("lightsSkip").hidden = !!burned[day];
+  $("lightsSkip").textContent = `Skip ${DAYS[day]}, no penalty`;
+  if (skipped[day]) { $("lightsGo").disabled = true; $("lightsGo").textContent = `${DAYS[day]} skipped, no penalty`; }
+  else if (burned[day]) { $("lightsGo").disabled = true; $("lightsGo").textContent = `Already applied for ${DAYS[day]}`; }
   else { $("lightsGo").disabled = !store; $("lightsGo").textContent = `Apply the 20% rule for ${DAYS[day]}`; }
 }
 
@@ -838,6 +897,11 @@ $("buyGo").onclick = async () => {
   if (await save(ev, "buyMsg", "Purchase recorded.")) { buyItem = null; }
   render();
 };
+$("lightsSkip").onclick = async () => {
+  const { burned } = derive(); if (burned[day]) return;
+  await save(newEvent({ kind: "burn", skipped: true, lines: [], text: `Lights out ${DAYS[day]}: skipped, no penalty` }), "lightsMsg", `${DAYS[day]} skipped. Nobody loses points.`);
+  render();
+};
 $("lightsGo").onclick = async () => {
   const { t, burned } = derive(); if (burned[day]) return;
   const lines = burnLines(t).filter(l => l.pts < 0);
@@ -865,7 +929,15 @@ $("rosterGo").onclick = async () => {
 
 document.addEventListener("click", async e => {
   const b = e.target.closest("button"); if (!b) return;
-  if (b.dataset.day) { day = b.dataset.day; try { localStorage.setItem("tsb-day", day); } catch (er) {} render(); }
+  if (b.dataset.view) {
+    if (b.dataset.view === "student") { view = "student"; viewArmed = false; stuTeam = null; }
+    else if (view === "student" && !viewArmed) { viewArmed = true; render(); setTimeout(() => { viewArmed = false; render(); }, 3000); return; }
+    else { view = "staff"; viewArmed = false; }
+    try { localStorage.setItem("tsb-view", view); } catch (er) {}
+    window.scrollTo(0, 0); render();
+  }
+  else if (b.dataset.stuTeam != null) { stuTeam = +b.dataset.stuTeam; render(); }
+  else if (b.dataset.day) { day = b.dataset.day; try { localStorage.setItem("tsb-day", day); } catch (er) {} render(); }
   else if (b.dataset.sort) { sortBy = b.dataset.sort; render(); }
   else if (b.dataset.tab) {
     document.querySelectorAll("[role=tab]").forEach(x => x.setAttribute("aria-selected", x === b));
