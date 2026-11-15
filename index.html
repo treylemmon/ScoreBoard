@@ -329,7 +329,7 @@ const GAMES = {
   ctf:       { label: "Capture the flag", mode: "place",  units: [12, 8, 4, 2] },
   afternoon: { label: "Afternoon game",   mode: "place",  units: [12, 8, 4, 2] },
   trivia:    { label: "Trivia",           mode: "tokens", units: 2 },
-  talent:    { label: "Talent show",      mode: "tokens", units: 1 },
+  talent:    { label: "Talent show",      mode: "tokens", units: 2 },
 };
 const ITEMS = {
   lifeline: { label: "Lifeline",          u: 5, type: "up", retired: true },
@@ -903,7 +903,7 @@ function renderSetup() {
   $("sheet").innerHTML = `<thead><tr><th>Item</th><th>Units</th>${[0,1,2,3].map(i => `<th style="color:${tc(i)}">${esc(nm(i))}</th>`).join("")}</tr></thead><tbody>
     ${rowsHtml("Up-front winner", 8)}
     ${rowsHtml("Big game 1st", 12)}${rowsHtml("Big game 2nd", 8)}${rowsHtml("Big game 3rd", 4)}${rowsHtml("Big game 4th", 2)}
-    ${rowsHtml("Trivia winner, per kid", 2)}${rowsHtml("Talent winner, per kid", 1)}${rowsHtml("Bonus", 1)}
+    ${rowsHtml("Trivia winner, per kid", 2)}${rowsHtml("Talent winner, per kid", 2)}${rowsHtml("Bonus", 1)}
     ${Object.values(ITEMS).map(it => rowsHtml(it.label, it.u)).join("")}</tbody>`;
 }
 
