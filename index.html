@@ -221,7 +221,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
     <div class="msg" id="gMsg" aria-live="polite"></div>
     <div style="border-top:1px solid var(--line);padding-top:14px;display:grid;gap:10px">
       <h2>Bonus unit</h2>
-      <p class="note" style="margin:0">Give a team 1 bonus unit for props, the funniest act, or anything you decide. Tap the team, then tap again to confirm.</p>
+      <p class="note" style="margin:0">Give a talent show group a bonus for props, the funniest act, or anything you decide. Every kid in that group earns 1 unit for their own team. Tap the group, then tap again to confirm.</p>
       <input type="text" id="bonusNote" placeholder="Reason (optional), e.g. best props">
       <div class="pick" id="bonusTeams"></div>
       <div class="msg" id="bonusMsg" aria-live="polite"></div>
@@ -602,8 +602,18 @@ function groupAward() {
   return { per, lines, text: `${g.label}: ${placing}. ${parts.join(", ")}` };
 }
 let bonusArmed = null;
+function bonusLines(grp) {
+  const per = [0,0,0,0];
+  grp.members.forEach(k => { const [tm, ...rest] = k.split("|"); const team = +tm; if (rosterList(team).includes(rest.join("|"))) per[team]++; });
+  return per.map((n, team) => ({ team, kids: n, pts: n * UNIT[team] })).filter(l => l.kids);
+}
 function renderBonus() {
-  $("bonusTeams").innerHTML = [0,1,2,3].map(i => `<button data-bonus="${i}" style="--tc:${tc(i)}" aria-pressed="${bonusArmed === i}"><span style="color:${tc(i)}">${esc(nm(i))}</span><span class="c">${bonusArmed === i ? `Tap again: +${UNIT[i]} pts` : `+1 unit = ${UNIT[i]} pts`}</span></button>`).join("");
+  const groups = groupsData.talent;
+  $("bonusTeams").innerHTML = groups.length ? groups.map(g => {
+    const armed = bonusArmed === g.id;
+    const sum = bonusLines(g).map(l => `${nm(l.team)} +${l.pts}`).join(", ");
+    return `<button data-bonus="${esc(g.id)}" aria-pressed="${armed}">${esc(g.name)}<span class="c">${armed ? "Tap again: " + sum : g.members.length + " kids, 1 unit each"}</span></button>`;
+  }).join("") : `<span class="note">Set up the talent show groups in the Rosters tab first.</span>`;
 }
 function renderGroups() {
   renderBonus();
@@ -978,11 +988,15 @@ document.addEventListener("click", async e => {
   else if (b.dataset.cap != null) { b.disabled = true; await addCap(+b.dataset.cap, +b.dataset.from); }
   else if (b.dataset.gev) { gEvent = b.dataset.gev; gDelArmed = false; renderGroups(); }
   else if (b.dataset.bonus != null) {
-    const team = +b.dataset.bonus;
-    if (bonusArmed !== team) { bonusArmed = team; renderBonus(); setTimeout(() => { if (bonusArmed === team) { bonusArmed = null; renderBonus(); } }, 4000); return; }
+    const id = b.dataset.bonus, grp = groupsData.talent.find(g => g.id === id);
+    if (!grp) return;
+    if (bonusArmed !== id) { bonusArmed = id; renderBonus(); setTimeout(() => { if (bonusArmed === id) { bonusArmed = null; renderBonus(); } }, 4000); return; }
     bonusArmed = null;
+    const lines = bonusLines(grp).map(l => ({ team: l.team, pts: l.pts }));
+    if (!lines.length) return;
     const note = $("bonusNote").value.trim().slice(0, 60);
-    if (await save(newEvent({ kind: "bonus", lines: [{ team, pts: UNIT[team] }], text: `Bonus: ${nm(team)} +1 unit (+${UNIT[team]})${note ? " for " + note : ""}` }), "bonusMsg", `${nm(team)} got a bonus unit.`)) $("bonusNote").value = "";
+    const text = `Bonus: ${grp.name}${note ? " for " + note : ""}. ` + lines.map(l => `${nm(l.team)} +${l.pts}`).join(", ");
+    if (await save(newEvent({ kind: "bonus", lines, text }), "bonusMsg", `${grp.name} got a bonus.`)) $("bonusNote").value = "";
     render();
   }
   else if (b.dataset.gsel) { gActive[gEvent] = b.dataset.gsel; gDelArmed = false; renderGroups(); }
